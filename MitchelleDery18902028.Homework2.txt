@@ -1,0 +1,202 @@
+Mitchelle Dery
+
+
+7.24
+MariaDB [(none)]> create database projects;
+Query OK, 1 row affected (0.017 sec)
+
+MariaDB [(none)]> use projects
+Database changed
+MariaDB [projects]> CREATE TABLE Employee (
+    ->     empNo      VARCHAR(10)  NOT NULL,
+    ->     fName      VARCHAR(20)  NOT NULL,
+    ->     lName      VARCHAR(20)  NOT NULL,
+    ->     sex        CHAR(1)      NOT NULL,
+    ->     position   VARCHAR(20)  NOT NULL,
+    ->     dob        DATE,
+    ->     salary     DECIMAL(10,2),
+    ->     PRIMARY KEY (empNo),
+    ->     CONSTRAINT chk_sex 
+    ->         CHECK (sex IN ('M', 'F')),
+    ->     CONSTRAINT chk_position 
+    ->         CHECK (position IN ('Manager', 'Team Leader', 
+    ->                            'Analyst', 'Software Developer'))
+    -> );
+Query OK, 0 rows affected (0.069 sec)
+
+MariaDB [projects]> CREATE TABLE Project (
+    ->     projNo     VARCHAR(10)  NOT NULL,
+    ->     projName   VARCHAR(50)  NOT NULL,
+    ->     startDate  DATE,
+    ->     endDate    DATE,
+    ->     budget     DECIMAL(10,2),
+    ->     mgrEmpNo   VARCHAR(10),
+    ->     PRIMARY KEY (projNo),
+    ->     FOREIGN KEY (mgrEmpNo) REFERENCES Employee(empNo)
+    -> );
+Query OK, 0 rows affected (0.038 sec)
+
+MariaDB [projects]> 
+MariaDB [projects]> CREATE TABLE WorksOn (
+    ->     empNo       VARCHAR(10)  NOT NULL,
+    ->     projNo      VARCHAR(10)  NOT NULL,
+    ->     hoursWorked INT          NOT NULL,
+    ->     PRIMARY KEY (empNo, projNo),
+    ->     FOREIGN KEY (empNo)  REFERENCES Employee(empNo),
+    ->     FOREIGN KEY (projNo) REFERENCES Project(projNo),
+    ->     CONSTRAINT chk_hours 
+    ->         CHECK (hoursWorked BETWEEN 0 AND 40)
+    -> );
+Query OK, 0 rows affected (0.044 sec)
+
+
+7.25
+MariaDB [projects]> CREATE VIEW FemaleManagerProjects AS
+    -> SELECT p.projNo,
+    ->        p.projName,
+    ->        p.startDate,
+    ->        p.endDate,
+    ->        p.budget,
+    ->        p.mgrEmpNo
+    -> FROM   Project p
+    -> JOIN   Employee e ON p.mgrEmpNo = e.empNo
+    -> WHERE  e.sex = 'F'
+    -> ORDER BY p.projNo;
+Query OK, 0 rows affected (0.048 sec)
+
+
+7.26
+MariaDB [projects]> CREATE VIEW EmpProjectHours AS
+    -> SELECT e.empNo,
+    ->        e.fName,
+    ->        e.lName,
+    ->        p.projName,
+    ->        w.hoursWorked
+    -> FROM   Employee e
+    -> JOIN   WorksOn  w ON e.empNo  = w.empNo
+    -> JOIN   Project  p ON w.projNo = p.projNo;
+Query OK, 0 rows affected (0.025 sec)
+
+
+7.27
+MariaDB [projects]> CREATE VIEW EmpProject(empNo, projNo, totalHours)
+    -> AS SELECT w.empNo, w.projNo, SUM(hoursWorked)
+    ->    FROM   Employee e, Project p, WorksOn w
+    ->    WHERE  e.empNo = w.empNo AND p.projNo = w.projNo
+    ->    GROUP BY w.empNo, w.projNo;
+Query OK, 0 rows affected (0.039 sec)
+
+
+MariaDB [projects]> INSERT INTO Employee (empNo, fName, lName, sex, position, dob, salary)
+    -> VALUES
+    ->     ('E1', 'John',   'Smith',   'M', 'Manager',           '1980-05-14', 55000.00),
+    ->     ('E2', 'Sarah',  'Johnson', 'F', 'Manager',           '1985-03-22', 52000.00),
+    ->     ('E3', 'David',  'Brown',   'M', 'Team Leader',       '1990-07-11', 45000.00),
+    ->     ('E4', 'Emily',  'Davis',   'F', 'Team Leader',       '1992-01-30', 43000.00),
+    ->     ('E5', 'James',  'Wilson',  'M', 'Analyst',           '1995-09-18', 38000.00),
+    ->     ('E6', 'Linda',  'Taylor',  'F', 'Analyst',           '1993-11-25', 37000.00),
+    ->     ('E7', 'Robert', 'Moore',   'M', 'Software Developer','1997-04-09', 35000.00),
+    ->     ('E8', 'Grace',  'Anderson','F', 'Software Developer','1998-06-17', 34000.00);
+Query OK, 8 rows affected (0.048 sec)
+Records: 8  Duplicates: 0  Warnings: 0
+
+MariaDB [projects]> INSERT INTO Project (projNo, projName, startDate, endDate, budget, mgrEmpNo)
+    -> VALUES
+    ->     ('P1',   'Database Upgrade',    '2024-01-10', '2024-06-30', 80000.00,  'E1'),
+    ->     ('P2',   'Web Portal',          '2024-02-15', '2024-09-30', 120000.00, 'E2'),
+    ->     ('SCCS', 'Security System',     '2024-03-01', '2024-12-31', 95000.00,  'E1'),
+    ->     ('P4',   'Mobile App',          '2024-04-01', '2025-01-31', 150000.00, 'E2'),
+    ->     ('P5',   'Data Analytics Tool', '2024-05-01', '2024-11-30', 60000.00,  'E1');
+Query OK, 5 rows affected (0.002 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+MariaDB [projects]> INSERT INTO WorksOn (empNo, projNo, hoursWorked)
+    -> VALUES
+    ->     ('E1', 'P1',   20),
+    ->     ('E1', 'SCCS', 15),
+    ->     ('E2', 'P2',   30),
+    ->     ('E2', 'P4',   25),
+    ->     ('E3', 'P1',   40),
+    ->     ('E3', 'P2',   35),
+    ->     ('E4', 'SCCS', 38),
+    ->     ('E4', 'P4',   20),
+    ->     ('E5', 'P1',   30),
+    ->     ('E5', 'P5',   40),
+    ->     ('E6', 'P2',   25),
+    ->     ('E6', 'SCCS', 30),
+    ->     ('E7', 'P4',   40),
+    ->     ('E7', 'P5',   35),
+    ->     ('E8', 'P1',   15),
+    ->     ('E8', 'P2',   20);
+Query OK, 16 rows affected (0.005 sec)
+Records: 16  Duplicates: 0  Warnings: 0
+
+
+
+MariaDB [projects]> SELECT *
+    -> FROM EmpProject;
++-------+--------+------------+
+| empNo | projNo | totalHours |
++-------+--------+------------+
+| E1    | P1     |         20 |
+| E1    | SCCS   |         15 |
+| E2    | P2     |         30 |
+| E2    | P4     |         25 |
+| E3    | P1     |         40 |
+| E3    | P2     |         35 |
+| E4    | P4     |         20 |
+| E4    | SCCS   |         38 |
+| E5    | P1     |         30 |
+| E5    | P5     |         40 |
+| E6    | P2     |         25 |
+| E6    | SCCS   |         30 |
+| E7    | P4     |         40 |
+| E7    | P5     |         35 |
+| E8    | P1     |         15 |
+| E8    | P2     |         20 |
++-------+--------+------------+
+16 rows in set (0.024 sec)
+
+MariaDB [projects]> SELECT projNo
+    -> FROM   EmpProject
+    -> WHERE  projNo = 'SCCS';
++--------+
+| projNo |
++--------+
+| SCCS   |
+| SCCS   |
+| SCCS   |
++--------+
+3 rows in set (0.006 sec)
+
+MariaDB [projects]> SELECT COUNT(projNo)
+    -> FROM   EmpProject
+    -> WHERE  empNo = 'E1';
++---------------+
+| COUNT(projNo) |
++---------------+
+|             2 |
++---------------+
+1 row in set (0.003 sec)
+
+MariaDB [projects]> SELECT empNo, totalHours
+    -> FROM   EmpProject
+    -> GROUP BY empNo;
++-------+------------+
+| empNo | totalHours |
++-------+------------+
+| E1    |         20 |
+| E2    |         30 |
+| E3    |         40 |
+| E4    |         20 |
+| E5    |         30 |
+| E6    |         25 |
+| E7    |         40 |
+| E8    |         15 |
++-------+------------+
+8 rows in set (0.002 sec)
+
+
+
+7.28
+The view stores a list of part numbers where the cost is greater than 1000 pounds. For insert, if a new part costs more than 1000 pounds, add it to the view. If it costs less do nothing. There is no need to reference the base table. For delete, you cannot just remove it from the view immediately. You must check if that part exists in another contract with a cost above 1000 pounds. If yes, keep it in the view but if no remove it. For update, if the cost goes above 1000 pounds, add it to the view and there is no need to reference base table Part. However, if the cost drops below 1000 pounds, check for other contracts before removing it from the view
